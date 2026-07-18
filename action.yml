@@ -1,0 +1,47 @@
+name: "GitSpider CI Config Gate"
+description: "Fail your build when GitHub Actions config waste grows — missing caches, timeouts, concurrency, runaway matrices. A coverage-style ratchet for CI hygiene."
+author: "GitSpider"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  max-findings:
+    description: >
+      Fail when the public scorecard's finding count exceeds this number.
+      Leave unset for report-only mode (never fails — start here, then set the
+      ratchet to your current count and tighten as you fix).
+    required: false
+    default: ""
+  max-recoverable-minutes:
+    description: >
+      Alternative/additional gate: fail when estimated recoverable runner-minutes
+      per month (capped, same math as the scorecard headline) exceed this number.
+    required: false
+    default: ""
+  repository:
+    description: "owner/repo to check (defaults to the current repository)."
+    required: false
+    default: ${{ github.repository }}
+
+outputs:
+  findings:
+    description: "Number of config findings on the scorecard."
+    value: ${{ steps.gate.outputs.findings }}
+  recoverable-minutes:
+    description: "Estimated recoverable runner-minutes per month (capped)."
+    value: ${{ steps.gate.outputs.recoverable_min }}
+  scorecard-url:
+    description: "The repository's public scorecard."
+    value: ${{ steps.gate.outputs.scorecard_url }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: gate
+      shell: bash
+      env:
+        REPO: ${{ inputs.repository }}
+        MAX_FINDINGS: ${{ inputs.max-findings }}
+        MAX_MINUTES: ${{ inputs.max-recoverable-minutes }}
+      run: ${{ github.action_path }}/gate.sh

@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 9 * * MON" # weekly dogfood — also keeps the demo scorecard warm
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report-only against a known-scanned repo
+        uses: ./
+        with:
+          repository: vitejs/vite
+      - name: Gate math sanity (threshold high enough to always pass)
+        uses: ./
+        with:
+          repository: vitejs/vite
+          max-findings: 500
+      - name: Unscanned repo must warn-and-pass, never fail
+        uses: ./
+        with:
+          repository: this-org-does-not/exist-xyzzy
