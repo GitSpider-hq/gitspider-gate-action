@@ -35,7 +35,13 @@ if [ "$status" != "200" ]; then
   exit 0
 fi
 
-findings=$(echo "$json" | jq '.findings | length')
+# The RATCHET counts only findings that carry measurable recoverable minutes.
+# Advisory findings (est 0 — style/hygiene/risk flags) are reported in the summary
+# but never fail the gate: detector releases add advisory kinds over time, and a
+# pinned max-findings must not start failing builds because the scanner learned
+# a new advisory check.
+findings=$(echo "$json" | jq '[.findings[] | select((.est_wasted_min_per_month // 0) > 0)] | length')
+advisory=$(echo "$json" | jq '[.findings[] | select((.est_wasted_min_per_month // 0) == 0)] | length')
 recoverable=$(echo "$json" | jq '.est_recoverable_min_capped // 0')
 fetched=$(echo "$json" | jq -r '.fetched_at')
 out findings "$findings"
@@ -45,11 +51,12 @@ summary "### GitSpider config gate — \`${REPO}\`"
 summary ""
 summary "| Metric | Value |"
 summary "|---|---|"
-summary "| Config findings | **${findings}** |"
+summary "| Config findings (gated) | **${findings}** |"
+summary "| Advisory findings (never gate) | ${advisory} |"
 summary "| Est. recoverable runner-min / month | **${recoverable}** |"
 summary "| Scorecard data as of | ${fetched} |"
 summary ""
-if [ "$findings" != "0" ]; then
+if [ "$findings" != "0" ] || [ "$advisory" != "0" ]; then
   summary "**Findings by kind:**"
   echo "$json" | jq -r '.findings | group_by(.kind) | .[] | "- \(.[0].kind) × \(length) (\([.[].workflow] | join(", ")))"' >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
   summary ""
