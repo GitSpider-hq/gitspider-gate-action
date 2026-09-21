@@ -22,6 +22,8 @@ jobs:
           max-findings: 3   # your ratchet — set to your current count, tighten as you fix
 ```
 
+**Advisory findings never fail the gate.** Findings with no measurable recoverable minutes (hygiene and risk flags) are listed in the summary but excluded from the `max-findings` count — so scanner releases that add new advisory checks can't break a pinned ratchet.
+
 Start **without** `max-findings` for report-only mode: the job summary shows your findings (grouped by kind, with the workflows they apply to) and never fails. Then set the ratchet.
 
 ## Inputs
